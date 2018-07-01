@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import java.sql.Timestamp
 import java.util.*
 import javax.persistence.*
@@ -37,7 +37,7 @@ fun randString(): String = UUID.randomUUID().toString()
 @EnableWebMvc
 @EnableJpaRepositories(basePackages = ["com.kotlin.springkotlin"])
 @EnableTransactionManagement
-class WebConfig : WebMvcConfigurerAdapter()
+class WebConfig : WebMvcConfigurer
 
 @MappedSuperclass
 sealed class BaseEO(
