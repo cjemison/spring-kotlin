@@ -1,5 +1,6 @@
 package com.kotlin.springkotlin
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.springframework.beans.factory.annotation.Autowired
@@ -36,7 +37,7 @@ fun randString(): String = UUID.randomUUID().toString()
 @EnableWebMvc
 @EnableJpaRepositories(basePackages = ["com.kotlin.springkotlin"])
 @EnableTransactionManagement
-sealed class WebConfig : WebMvcConfigurerAdapter()
+class WebConfig : WebMvcConfigurerAdapter()
 
 @MappedSuperclass
 sealed class BaseEO(
@@ -61,26 +62,45 @@ interface AppEORepository : CrudRepository<AppEO, String> {
 }
 
 
+sealed class BaseDO
+data class AppDO(@JsonProperty("id")
+                 val id: String,
+                 @JsonProperty("application_name")
+                 val appName: String,
+                 @JsonProperty("epoch")
+                 val epoch: Long) : BaseDO()
+
+fun AppEO.toDomain(): AppDO = AppDO(id = this.id, appName = this.appName, epoch = this.epoch)
+
+
 @RestController
 class AppController @Autowired constructor(val appEORepository: AppEORepository) {
 
     @RequestMapping(value = ["/v1/app"], method = [RequestMethod.GET],
             produces = [MediaType.APPLICATION_JSON_UTF8_VALUE])
-    fun get(): ResponseEntity<Iterable<AppEO>> {
+    fun get(): ResponseEntity<Iterable<BaseDO>> {
         appEORepository.save(AppEO("Cornelius"))
-        return ResponseEntity.ok(appEORepository.findAll())
+        val list: List<AppDO> = appEORepository
+                .findAll()
+                .map { appEO -> appEO.toDomain() }
+        return ResponseEntity.ok(list)
     }
 
     @RequestMapping(value = ["/v1/app/{id}"], method = [RequestMethod.GET],
             produces = [MediaType.APPLICATION_JSON_UTF8_VALUE])
-    fun getById(@PathVariable("id") id: String): ResponseEntity<AppEO> {
-        return ResponseEntity.ok(appEORepository.findById(id).get())
+    fun getById(@PathVariable("id") id: String): ResponseEntity<BaseDO> {
+
+        return ResponseEntity.ok(appEORepository.findById(id).get().toDomain())
     }
 
     @RequestMapping(value = ["/v1/app/name/{name}"], method = [RequestMethod.GET],
             produces = [MediaType.APPLICATION_JSON_UTF8_VALUE])
-    fun getByName(@PathVariable("name") name: String): ResponseEntity<Iterable<AppEO>> {
-        return ResponseEntity.ok(appEORepository.findByAppName(name))
+    fun getByName(@PathVariable("name") name: String): ResponseEntity<Iterable<BaseDO>> {
+
+        val list: List<AppDO> = appEORepository
+                .findByAppName(name)
+                .map { appEO -> appEO.toDomain() }
+        return ResponseEntity.ok(list)
     }
 }
 
